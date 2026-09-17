@@ -71,3 +71,17 @@ services:
       - ./grafana-provisioning/dashboards/clickstream.json:/etc/grafana/provisioning/dashboards/json/clickstream.json
     depends_on:
       - clickhouse
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile.producer
+    container_name: elt-producer
+    networks:
+      - pipeline-net
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=redpanda:9092
+    volumes:
+      - ./producer.py:/app/producer.py  
+    depends_on:
+      - redpanda
+    restart: unless-stopped

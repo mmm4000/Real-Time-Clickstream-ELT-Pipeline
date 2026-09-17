@@ -3,10 +3,13 @@ import random
 import time
 from datetime import datetime , timezone
 from kafka import KafkaProducer
+import os
 
+
+BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 #1. 初始化 kafka producer ， 連線到 redpanda (localhost:9092)
 producer  = KafkaProducer(
-    bootstrap_servers = ['localhost:19092'],
+    bootstrap_servers = [BOOTSTRAP_SERVERS],
     value_serializer = lambda v: json.dumps(v).encode('utf-8')
 )
 
