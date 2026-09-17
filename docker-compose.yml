@@ -1,0 +1,73 @@
+version: '3.8'
+
+networks:
+  pipeline-net:
+    driver: bridge
+
+volumes:
+  clickhouse_data:
+  grafana_data:
+  redpanda_data:
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    container_name: redpanda
+    networks:
+      - pipeline-net
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --node-id=0
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --check=false
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+      - "9644:9644"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse-server
+    networks:
+      - pipeline-net
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      # 關鍵：容器第一次啟動時會自動執行這個資料夾下的所有 .sql 檔
+      - ./init-clickhouse:/docker-entrypoint-initdb.d
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    networks:
+      - pipeline-net
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      # 關鍵：掛載自動設定檔，Grafana 開機就會自動把連線與儀表板載入
+      - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./grafana-provisioning/dashboards/clickstream.json:/etc/grafana/provisioning/dashboards/json/clickstream.json
+    depends_on:
+      - clickhouse

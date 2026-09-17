@@ -1,0 +1,22 @@
+# Python 虛擬環境與暫存
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# 環境變數與機密設定（若有使用）
+.env
+*.local
+
+# Docker / 資料庫本機掛載資料（若 docker-compose 有使用本地 volume 資料夾）
+data/
+clickhouse-data/
+redpanda-data/
+
+# 編輯器與作業系統暫存
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
